@@ -55,7 +55,9 @@ module Anemone
       # proxy server port number
       :proxy_port => false,
       # HTTP read timeout in seconds
-      :read_timeout => nil
+      :read_timeout => nil,
+      # Stay on the initial host?
+      :stay_on_host => true,
     }
 
     # Create setter methods for all options to be called from the crawl block
@@ -240,7 +242,7 @@ module Anemone
     # and the block given to focus_crawl()
     #
     def links_to_follow(page)
-      links = @focus_crawl_block ? @focus_crawl_block.call(page) : page.links
+      links = @focus_crawl_block ? @focus_crawl_block.call(page) : page.links(@opts[:stay_on_host])
       links.select { |link| visit_link?(link, page) }.map { |link| link.dup }
     end
 

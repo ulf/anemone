@@ -33,13 +33,19 @@ module Anemone
         url = URI(url) unless url.is_a?(URI)
         pages = []
         get(url, referer) do |response, code, location, redirect_to, response_time|
-          pages << Page.new(location, :body => response.body.dup,
+          p = Page.new(location, :body => response.body.dup,
                                       :code => code,
                                       :headers => response.to_hash,
                                       :referer => referer,
                                       :depth => depth,
                                       :redirect_to => redirect_to,
                                       :response_time => response_time)
+          # Stupid hack to realize link array with correct options
+          # otherwise it gets created by call from Mongo and then
+          # cached, so that later calls with different options are
+          # incorrect
+          p.links @opts[:stay_on_host]
+          pages << p
         end
 
         return pages

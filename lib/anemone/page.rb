@@ -54,7 +54,7 @@ module Anemone
     #
     # Array of distinct A tag HREFs from the page
     #
-    def links stay_on_host = True
+    def links stay_on_host = true
       return @links unless @links.nil?
       @links = []
       return @links if !doc

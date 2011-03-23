@@ -79,6 +79,7 @@ module Anemone
       @on_every_page_blocks = []
       @on_pages_like_blocks = Hash.new { |hash,key| hash[key] = [] }
       @skip_link_patterns = []
+      @only_link_patterns = []
       @after_crawl_blocks = []
       @opts = opts
 
@@ -110,6 +111,15 @@ module Anemone
     #
     def skip_links_like(*patterns)
       @skip_link_patterns.concat [patterns].flatten.compact
+      self
+    end
+
+    #
+    # Add one ore more Regex patterns to determine what URLs must look
+    # like so that will befollowed
+    #
+    def only_links_like(*patterns)
+      @only_link_patterns.concat [patterns].flatten.compact
       self
     end
 
@@ -258,7 +268,8 @@ module Anemone
       !skip_link?(link) &&
       !skip_query_string?(link) &&
       allowed(link) &&
-      !too_deep?(from_page)
+      !too_deep?(from_page) &&
+        really_allowed?(link)
     end
 
     #
@@ -297,7 +308,18 @@ module Anemone
     # its URL matches a skip_link pattern.
     #
     def skip_link?(link)
-      @skip_link_patterns.any? { |pattern| link.path =~ pattern }
+      @skip_link_patterns.any? { |pattern| link.to_s =~ pattern }
+    end
+
+    #
+    # Returns +true+ if *link* should be visited because
+    # its URL matches a only_link pattern.
+    #
+    def really_allowed?(link)
+      if @only_link_patterns.length == 0
+        return true
+      end
+      @only_link_patterns.any? { |pattern| link.to_s =~ pattern }
     end
 
   end

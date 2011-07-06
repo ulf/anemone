@@ -14,8 +14,8 @@ module Anemone
   #
   # Convenience method to start a crawl
   #
-  def Anemone.crawl(urls, options = {}, &block)
-    Core.crawl(urls, options, &block)
+  def Anemone.crawl(urls, total, options = {}, &block)
+    Core.crawl(urls, total, options, &block)
   end
 
   class Core
@@ -71,9 +71,10 @@ module Anemone
     # Initialize the crawl with starting *urls* (single URL or Array of URLs)
     # and optional *block*
     #
-    def initialize(urls, opts = {})
+    def initialize(urls, total, opts = {})
       @urls = [urls].flatten.map{ |url| url.is_a?(URI) ? url : URI(url) }
       @urls.each{ |url| url.path = '/' if url.path.empty? }
+      @total = total
 
       @tentacles = []
       @on_every_page_blocks = []
@@ -89,8 +90,8 @@ module Anemone
     #
     # Convenience method to start a new crawl
     #
-    def self.crawl(urls, opts = {})
-      self.new(urls, opts) do |core|
+    def self.crawl(urls, total, opts = {})
+      self.new(urls, total, opts) do |core|
         yield core if block_given?
         core.run
       end
@@ -171,22 +172,25 @@ module Anemone
       end
 
       @urls.each{ |url| link_queue.enq(url) }
+      puts link_queue.to_json
 
       loop do
         page = page_queue.deq
-        @pages.touch_key page.url
-        puts "#{page.url} Queue: #{link_queue.size}" if @opts[:verbose]
-        do_page_blocks page
-        page.discard_doc! if @opts[:discard_page_bodies]
+        if @total[page.url] == 0
+          @total[page.url] = 1
+          @pages.touch_key page.url
+          puts "#{page.url} Queue: #{link_queue.size}" if @opts[:verbose]
+          do_page_blocks page
+          page.discard_doc! if @opts[:discard_page_bodies]
 
-        links = links_to_follow page
-        links.each do |link|
-          link_queue << [link, page.url.dup, page.depth + 1]
+          links = links_to_follow page
+          links.each do |link|
+            link_queue << [link, page.url.dup, page.depth + 1]
+          end
+          @pages.touch_keys links
+
+          @pages[page.url] = page
         end
-        @pages.touch_keys links
-
-        @pages[page.url] = page
-
         # if we are done with the crawl, tell the threads to end
         if link_queue.empty? and page_queue.empty?
           until link_queue.num_waiting == @tentacles.size

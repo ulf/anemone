@@ -72,7 +72,10 @@ module Anemone
     # and optional *block*
     #
     def initialize(urls, total, opts = {})
-      @urls = [urls].flatten.map{ |url| url.is_a?(URI) ? url : URI(url) }
+      if not urls.is_a?(Array)
+        urls = [urls].flatten
+      end
+      @urls = urls.map{ |url| url.is_a?(URI) ? url : URI(url) }
       @urls.each{ |url| url.path = '/' if url.path.empty? }
       @total = total
 
@@ -172,7 +175,6 @@ module Anemone
       end
 
       @urls.each{ |url| link_queue.enq(url) }
-      puts link_queue.to_json
 
       loop do
         page = page_queue.deq

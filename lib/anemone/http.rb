@@ -44,7 +44,7 @@ module Anemone
           # otherwise it gets created by call from Mongo and then
           # cached, so that later calls with different options are
           # incorrect
-          p.links @opts[:stay_on_host]
+#          p.links @opts[:stay_on_host]
           pages << p
         end
 

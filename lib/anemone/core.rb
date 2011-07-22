@@ -76,7 +76,16 @@ module Anemone
       if not urls.is_a?(Array)
         urls = [urls].flatten
       end
-      @urls = urls.map{ |url| url.is_a?(URI) ? url : URI(url) }
+      @urls = []
+      urls.each{ |url|
+        begin
+          u = url.is_a?(URI) ? url : URI(url)
+          @urls << u
+        rescue
+          next
+        end  
+      }
+      
       @urls.each{ |url| url.path = '/' if url.path.empty? }
       @total = total
 

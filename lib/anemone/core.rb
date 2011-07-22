@@ -15,6 +15,7 @@ module Anemone
   # Convenience method to start a crawl
   #
   def Anemone.crawl(urls, total, options = {}, &block)
+    puts "Crawl starts: #{Time.now}"
     Core.crawl(urls, total, options, &block)
   end
 
@@ -162,6 +163,7 @@ module Anemone
     # Perform the crawl
     #
     def run
+      puts "Run starts: #{Time.now}"
       process_options
 
       @urls.delete_if { |url| !visit_link?(url) }
@@ -176,26 +178,35 @@ module Anemone
 
       @urls.each{ |url| link_queue.enq(url) }
 
+      puts "Proc starts: #{Time.now}"
+      i = 0
       loop do
+        puts "#{i}\tLoop starts: #{Time.now}"
+        i += 1
         page = page_queue.deq
         if @total[page.url] == 0
           @total[page.url] = 1
-          @pages.touch_key page.url
-          puts "#{page.url} Queue: #{link_queue.size}" if @opts[:verbose]
+#          @pages.touch_key page.url
+          puts "Links: #{link_queue.size} Pages: #{page_queue.size}" if @opts[:verbose]
+          puts "#{i}\tBlock starts: #{Time.now}"
           do_page_blocks page
+          puts "#{i}\tBlock done: #{Time.now}"
+            
           page.discard_doc! if @opts[:discard_page_bodies]
 
           links = links_to_follow page
+          puts "#{i}\tLinks done: #{Time.now}"
           links.each do |link|
             link_queue << [link, page.url.dup, page.depth + 1]
           end
-          @pages.touch_keys links
+#          @pages.touch_keys links
 
-          @pages[page.url] = page
+#          @pages[page.url] = page
         end
         # if we are done with the crawl, tell the threads to end
         if link_queue.empty? and page_queue.empty?
           until link_queue.num_waiting == @tentacles.size
+            puts "Waiting for pages"
             Thread.pass
           end
           if page_queue.empty?
@@ -204,7 +215,6 @@ module Anemone
           end
         end
       end
-
       @tentacles.each { |thread| thread.join }
       do_after_crawl_blocks
       self
